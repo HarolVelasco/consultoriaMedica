@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bot IA | Consultoría Médica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo">🩺 Consultoría Médica</a>
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="/">Inicio</a></li>
+        <li><a href="/reserva">Agendar</a></li>
+        <li><a href="/bot" class="active">Bot IA</a></li>
+        <li><a href="/verificar">Verificar ID</a></li>
+        <li><a href="/panel">Mi panel</a></li>
+        <li id="navUser"></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="page-header">
+    <h1>Asistente de citas</h1>
+    <p>Cuéntame qué necesitas y te ayudo a agendar</p>
+  </header>
+
+  <main class="container" style="margin-top:-1.25rem;">
+    <div class="chat-wrap">
+      <div class="chat-messages" id="messages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="input" placeholder="Escribe tu mensaje..." autocomplete="off">
+        <button class="btn btn-primary" id="btnSend">Enviar</button>
+      </div>
+    </div>
+    <p style="margin-top:0.75rem;font-size:0.85rem;color:#64748b;text-align:center;">
+      También puedes usar el <a href="/reserva">formulario clásico</a>.
+    </p>
+  </main>
+
+  <footer class="footer"><p>© 2026 Consultoría Médica</p></footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js"></script>
+  <script>
+    if (!requireAuth()) throw new Error("auth");
+
+    const messagesEl = document.getElementById("messages");
+    const input = document.getElementById("input");
+    const btnSend = document.getElementById("btnSend");
+    let sessionId = localStorage.getItem("bot_session") || null;
+
+    function addMsg(text, who) {
+      const div = document.createElement("div");
+      div.className = "msg msg-" + who;
+      div.textContent = text;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // Saludo inicial
+    addMsg(
+      "Hola 👋 Soy el asistente de Consultoría Médica.\n\nPuedo ayudarte a agendar una cita. Dime, por ejemplo:\n«Quiero una primera consulta la próxima semana por dolor de cabeza»\n\nO indícame tipo, fecha (AAAA-MM-DD), franja y motivo.",
+      "bot"
+    );
+
+    async function send() {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      addMsg(text, "user");
+      btnSend.disabled = true;
+
+      try {
+        const res = await botChat(text, sessionId);
+        sessionId = res.session_id;
+        localStorage.setItem("bot_session", sessionId);
+        addMsg(res.reply, "bot");
+        if (res.cita_creada) {
+          addMsg("Puedes ver tu cita en el panel: /panel", "bot");
+        }
+      } catch (err) {
+        addMsg("Error: " + err.message, "bot");
+      } finally {
+        btnSend.disabled = false;
+        input.focus();
+      }
+    }
+
+    btnSend.addEventListener("click", send);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") send();
+    });
+  </script>
+</body>
+</html>

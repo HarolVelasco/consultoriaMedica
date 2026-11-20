@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro | Consultoría Médica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo">🩺 Consultoría Médica</a>
+      <ul class="nav-links">
+        <li><a href="/login">Iniciar sesión</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="auth-wrap">
+    <div class="card">
+      <h1 class="card-title">Crear cuenta</h1>
+      <p class="card-sub">Regístrate para agendar citas y usar el bot.</p>
+
+      <div id="alert" class="alert"></div>
+
+      <form id="regForm">
+        <div class="form-group">
+          <label for="nombre">Nombre completo <span class="required">*</span></label>
+          <input type="text" id="nombre" required minlength="2" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="email">Email <span class="required">*</span></label>
+          <input type="email" id="email" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="telefono">Teléfono</label>
+          <input type="tel" id="telefono" autocomplete="tel" placeholder="+57 300 000 0000">
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña <span class="required">*</span></label>
+          <input type="password" id="password" required minlength="6" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="btnSubmit">Registrarme</button>
+      </form>
+
+      <p style="margin-top:1.25rem;text-align:center;font-size:0.9rem;color:#64748b;">
+        ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (getToken()) window.location.href = "/panel";
+
+    const form = document.getElementById("regForm");
+    const alertEl = document.getElementById("alert");
+    const btn = document.getElementById("btnSubmit");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alertEl.className = "alert";
+      btn.disabled = true;
+      btn.textContent = "Creando cuenta...";
+      try {
+        await registro({
+          nombre: form.nombre.value.trim(),
+          email: form.email.value.trim(),
+          telefono: form.telefono.value.trim() || null,
+          password: form.password.value,
+        });
+        // Auto-login
+        await login(form.email.value.trim(), form.password.value);
+        window.location.href = "/panel";
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.className = "alert alert-error show";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Registrarme";
+      }
+    });
+  </script>
+</body>
+</html>

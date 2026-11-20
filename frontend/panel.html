@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi panel | Consultoría Médica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo">🩺 Consultoría Médica</a>
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="/">Inicio</a></li>
+        <li><a href="/reserva">Agendar</a></li>
+        <li><a href="/bot">Bot IA</a></li>
+        <li><a href="/panel" class="active">Mi panel</a></li>
+        <li id="navUser"></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="page-header">
+    <h1>Mi panel</h1>
+    <p>Consulta y gestiona tus citas</p>
+  </header>
+
+  <main class="container">
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+      <a href="/reserva" class="btn btn-primary">Nueva cita</a>
+      <a href="/bot" class="btn btn-outline">Agendar con el bot</a>
+      <a href="/verificar" class="btn btn-outline">Verificar cédula</a>
+    </div>
+    <div id="avisoId" class="alert alert-info" style="display:none;margin-bottom:1rem;"></div>
+
+    <div class="card">
+      <h2 class="card-title">Mis citas</h2>
+      <p class="card-sub">Historial de solicitudes</p>
+      <div id="lista"></div>
+      <div id="vacio" class="alert alert-info" style="display:none;">
+        Aún no tienes citas. <a href="/reserva">Agenda la primera</a> o usa el <a href="/bot">bot</a>.
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer"><p>© 2026 Consultoría Médica</p></footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js"></script>
+  <script>
+    if (!requireAuth()) throw new Error("auth");
+
+    async function cargar() {
+      const lista = document.getElementById("lista");
+      const vacio = document.getElementById("vacio");
+      try {
+        const citas = await misCitas();
+        if (!citas.length) {
+          vacio.style.display = "block";
+          lista.innerHTML = "";
+          return;
+        }
+        vacio.style.display = "none";
+        lista.innerHTML = citas.map(c => `
+          <div class="cita-item">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap;">
+              <div>
+                <strong>${c.tipo}</strong>
+                <span class="badge badge-${c.estado}">${c.estado}</span>
+              </div>
+              ${c.estado === "pendiente" ? `
+                <button class="btn btn-danger" style="padding:0.35rem 0.75rem;font-size:0.85rem;"
+                  onclick="cancelar(${c.id})">Cancelar</button>
+              ` : ""}
+            </div>
+            <div class="meta">
+              📅 ${c.fecha} · ⏰ ${c.hora}<br>
+              Motivo: ${c.motivo}<br>
+              Origen: ${c.origen}
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        lista.innerHTML = `<div class="alert alert-error show">${err.message}</div>`;
+      }
+    }
+
+    async function cancelar(id) {
+      if (!confirm("¿Cancelar esta cita?")) return;
+      try {
+        await actualizarEstadoCita(id, "cancelada");
+        await cargar();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    cargar();
+
+    (async () => {
+      try {
+        const e = await api("/api/vision/estado-identidad");
+        const box = document.getElementById("avisoId");
+        if (!e.identidad_verificada) {
+          box.style.display = "block";
+          box.className = "alert alert-info show";
+          box.innerHTML = 'Tu identidad aún no está verificada. <a href="/verificar">Sube una foto de tu cédula</a>.';
+        } else {
+          box.style.display = "block";
+          box.className = "alert alert-success show";
+          box.textContent = "Identidad verificada" + (e.documento_numero ? " · Doc. " + e.documento_numero : "");
+        }
+      } catch (_) {}
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendar cita | Consultoría Médica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo">🩺 Consultoría Médica</a>
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="/">Inicio</a></li>
+        <li><a href="/reserva" class="active">Agendar</a></li>
+        <li><a href="/bot">Bot IA</a></li>
+        <li><a href="/verificar">Verificar ID</a></li>
+        <li><a href="/panel">Mi panel</a></li>
+        <li id="navUser"></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="page-header">
+    <h1>Agendar cita</h1>
+    <p>Completa el formulario o usa el <a href="/bot" style="color:#fff;text-decoration:underline;">bot con IA</a></p>
+  </header>
+
+  <main class="container" style="margin-top:-1.5rem;">
+    <div class="card">
+      <div id="alert" class="alert"></div>
+      <div id="formBox">
+        <h2 class="card-title">Datos de la consulta</h2>
+        <p class="card-sub">Debes iniciar sesión para agendar.</p>
+
+        <form id="citaForm">
+          <div class="form-grid">
+            <div class="form-group full">
+              <label for="tipo">Tipo de consulta <span class="required">*</span></label>
+              <select id="tipo" required>
+                <option value="" disabled selected>Selecciona</option>
+                <option>Primera consulta</option>
+                <option>Seguimiento</option>
+                <option>Segunda opinión</option>
+                <option>Consulta online</option>
+                <option>Consulta presencial</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="fecha">Fecha preferida <span class="required">*</span></label>
+              <input type="date" id="fecha" required>
+            </div>
+            <div class="form-group">
+              <label for="hora">Franja horaria <span class="required">*</span></label>
+              <select id="hora" required>
+                <option value="" disabled selected>Selecciona</option>
+                <option>Mañana (9:00 - 13:00)</option>
+                <option>Tarde (16:00 - 20:00)</option>
+                <option>Cualquier horario</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label for="motivo">Motivo <span class="required">*</span></label>
+              <textarea id="motivo" required maxlength="500" placeholder="Describe brevemente el motivo"></textarea>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="btnSubmit">Solicitar cita</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer"><p>© 2026 Consultoría Médica</p></footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js"></script>
+  <script>
+    if (!requireAuth()) throw new Error("auth");
+
+    const fecha = document.getElementById("fecha");
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    fecha.min = t.toISOString().split("T")[0];
+
+    const form = document.getElementById("citaForm");
+    const alertEl = document.getElementById("alert");
+    const btn = document.getElementById("btnSubmit");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alertEl.className = "alert";
+      btn.disabled = true;
+      btn.textContent = "Enviando...";
+      try {
+        await crearCita({
+          tipo: form.tipo.value,
+          fecha: form.fecha.value,
+          hora: form.hora.value,
+          motivo: form.motivo.value.trim(),
+          origen: "formulario",
+        });
+        document.getElementById("formBox").innerHTML = `
+          <div class="alert alert-success show">
+            <strong>¡Cita solicitada!</strong><br>
+            Te enviamos confirmación por email. Puedes verla en <a href="/panel">tu panel</a>.
+          </div>
+        `;
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.className = "alert alert-error show";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Solicitar cita";
+      }
+    });
+  </script>
+</body>
+</html>

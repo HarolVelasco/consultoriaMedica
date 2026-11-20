@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consultoría Médica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo">🩺 Consultoría Médica</a>
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="/" class="active">Inicio</a></li>
+        <li><a href="/reserva">Agendar cita</a></li>
+        <li><a href="/bot">Bot IA</a></li>
+        <li><a href="/verificar">Verificar ID</a></li>
+        <li id="navUser"></li>
+      </ul>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <h1>Tu salud, de forma simple</h1>
+    <p>Agenda consultas, revisa tus citas y usa nuestro asistente con IA para reservar en minutos.</p>
+    <div class="hero-buttons">
+      <a href="/reserva" class="btn">Agendar cita</a>
+      <a href="/bot" class="btn btn-outline-light">Hablar con el bot</a>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="features-grid">
+      <div class="feature-card">
+        <h3>📅 Reserva fácil</h3>
+        <p>Formulario rápido o conversación con el bot de IA.</p>
+      </div>
+      <div class="feature-card">
+        <h3>🔐 Tu cuenta</h3>
+        <p>Regístrate, inicia sesión y consulta el historial de citas.</p>
+      </div>
+      <div class="feature-card">
+        <h3>🤖 Asistente IA</h3>
+        <p>El bot te guía paso a paso para completar tu solicitud.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>© 2026 Consultoría Médica</p>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js"></script>
+</body>
+</html>

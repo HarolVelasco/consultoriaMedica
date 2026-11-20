@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificar identidad | Consultoría Médica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo">🩺 Consultoría Médica</a>
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="/">Inicio</a></li>
+        <li><a href="/reserva">Agendar</a></li>
+        <li><a href="/bot">Bot IA</a></li>
+        <li><a href="/verificar" class="active">Verificar ID</a></li>
+        <li><a href="/panel">Mi panel</a></li>
+        <li id="navUser"></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="page-header">
+    <h1>Verificación de identidad</h1>
+    <p>Sube una foto de tu cédula. La IA extrae los datos y los compara con tu cuenta.</p>
+  </header>
+
+  <main class="container" style="margin-top:-1.25rem;">
+    <div class="card" style="margin-bottom:1.25rem;">
+      <h2 class="card-title">Estado actual</h2>
+      <div id="estadoBox" class="card-sub">Cargando…</div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Subir foto de cédula</h2>
+      <p class="card-sub">Usa una foto clara tomada con el celular (JPG o PNG). Máx. 8 MB.</p>
+
+      <div id="alert" class="alert"></div>
+
+      <form id="formVision">
+        <div class="form-group">
+          <label for="file">Imagen <span class="required">*</span></label>
+          <input type="file" id="file" accept="image/jpeg,image/png,image/webp" required>
+        </div>
+        <div class="form-group">
+          <label for="docManual">Número de documento (opcional, si la IA no lo lee)</label>
+          <input type="text" id="docManual" placeholder="Ej. 1234567890" inputmode="numeric">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="btnSubmit">Analizar con visión IA</button>
+      </form>
+
+      <div id="resultado" style="display:none;margin-top:1.5rem;"></div>
+    </div>
+
+    <div class="card" style="margin-top:1.25rem;">
+      <h2 class="card-title">Historial de verificaciones</h2>
+      <div id="historial" class="card-sub">—</div>
+    </div>
+  </main>
+
+  <footer class="footer"><p>© 2026 Consultoría Médica · Módulo de visión</p></footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js"></script>
+  <script>
+    if (!requireAuth()) throw new Error("auth");
+
+    const alertEl = document.getElementById("alert");
+    const btn = document.getElementById("btnSubmit");
+    const resultado = document.getElementById("resultado");
+
+    async function cargarEstado() {
+      try {
+        const e = await api("/api/vision/estado-identidad");
+        const ok = e.identidad_verificada;
+        document.getElementById("estadoBox").innerHTML = ok
+          ? `<span class="badge badge-confirmada">Identidad verificada</span>
+             ${e.documento_numero ? `<br>Documento: ${e.documento_numero}` : ""}
+             ${e.confianza != null ? `<br>Confianza: ${(e.confianza * 100).toFixed(0)}%` : ""}`
+          : `<span class="badge badge-pendiente">Pendiente de verificación</span>
+             <br>Sube una foto de tu cédula para validar tu identidad.`;
+      } catch (err) {
+        document.getElementById("estadoBox").textContent = err.message;
+      }
+    }
+
+    async function cargarHistorial() {
+      try {
+        const docs = await api("/api/vision/mis-documentos");
+        if (!docs.length) {
+          document.getElementById("historial").textContent = "Aún no hay documentos procesados.";
+          return;
+        }
+        document.getElementById("historial").innerHTML = docs.map(d => `
+          <div class="cita-item">
+            <strong>${d.estado}</strong>
+            <span class="badge badge-${d.estado === "validado" ? "confirmada" : d.estado === "rechazado" ? "cancelada" : "pendiente"}">${d.estado}</span>
+            <div class="meta">
+              Nombre extraído: ${d.nombre_extraido || "—"}<br>
+              Documento: ${d.documento_extraido || "—"}<br>
+              Confianza: ${d.confianza != null ? (d.confianza * 100).toFixed(0) + "%" : "—"}<br>
+              ${new Date(d.creado_en).toLocaleString()}
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        document.getElementById("historial").textContent = err.message;
+      }
+    }
+
+    document.getElementById("formVision").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alertEl.className = "alert";
+      resultado.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = "Procesando imagen…";
+
+      const fd = new FormData();
+      fd.append("file", document.getElementById("file").files[0]);
+      const manual = document.getElementById("docManual").value.trim();
+      if (manual) fd.append("documento_manual", manual);
+
+      try {
+        const token = getToken();
+        const res = await fetch("/api/vision/verificar-cedula", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: fd,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al procesar");
+
+        resultado.style.display = "block";
+        resultado.innerHTML = `
+          <div class="alert ${data.estado === "validado" ? "alert-success" : data.estado === "rechazado" ? "alert-error" : "alert-info"} show">
+            <strong>Estado: ${data.estado}</strong><br>
+            Confianza: ${(data.confianza * 100).toFixed(0)}%<br>
+            Nombre extraído: ${data.nombre_extraido || "—"}<br>
+            Documento: ${data.documento_extraido || "—"}<br>
+            Motor: ${data.motor || "—"}<br>
+            ${data.detalle_motor ? "Detalle: " + data.detalle_motor + "<br>" : ""}
+            ${data.motivos && data.motivos.length ? "Motivos: " + data.motivos.join("; ") : ""}
+          </div>
+        `;
+        await cargarEstado();
+        await cargarHistorial();
+      } catch (err) {
+        alertEl.textContent = err.message;
+        alertEl.className = "alert alert-error show";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Analizar con visión IA";
+      }
+    });
+
+    cargarEstado();
+    cargarHistorial();
+  </script>
+</body>
+</html>
