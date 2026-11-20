@@ -122,6 +122,17 @@ Sin estas variables el sistema funciona igual; verás el email en la consola.
 
 ## Estructura
 
+Las etapas documentales del proyecto se organizan en:
+
+```text
+00-ingenieria-de-requerimientos/
+01-analisis/
+02-diseño/
+03-desarrollo/
+04-pruebas/
+05-implementacion/
+```
+
 ```
 consultoria-medica/
 ├── backend/
